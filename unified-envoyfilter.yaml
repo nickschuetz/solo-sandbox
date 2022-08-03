@@ -1,0 +1,93 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: unified-envoyfilter # Global and Local all in one
+  namespace: web-ui
+spec:
+  configPatches: # We're going to make 2 patches
+  - applyTo: VIRTUAL_HOST # Patch #1: Rate Limit Descriptors
+    match: # Match to all http traffic coming in to the sidecar on port 8080
+      context: SIDECAR_INBOUND
+      routeConfiguration:
+        portNumber: 8080
+        vhost:
+          name: inbound|http|80
+    patch:
+      operation: MERGE
+      value:
+        rateLimits:
+        - actions: # Rate Limit #1: "Local", when headers are there.
+          - genericKey:
+              descriptorValue: gloo-mesh-addons.local-server-config-ops-team-mgmt-rate-limiter
+          - genericKey:
+              descriptorValue: solo.setDescriptor.uniqueValue
+          - requestHeaders:
+              descriptorKey: product
+              headerName: X-PRODUCT
+              skipIfAbsent: true
+          - requestHeaders:
+              descriptorKey: org
+              headerName: X-ORG
+              skipIfAbsent: true
+          stage: 1
+        - actions: # Rate Limit #2: "Global". All traffic
+          - genericKey:
+              descriptorValue: gloo-mesh-addons.global-server-config-ops-team-mgmt-rate-limiter
+          - genericKey:
+              descriptorValue: counter
+          stage: 2
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
+            subFilter:
+              name: envoy.filters.http.router
+        portNumber: 8080
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.ratelimit
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+          domain: solo.io
+          rateLimitService:
+            grpcService:
+              envoyGrpc:
+                authority: outbound_.8083_._.rate-limiter.gloo-mesh-addons.svc.cluster.local
+                clusterName: outbound|8083||rate-limiter.gloo-mesh-addons.svc.cluster.local
+            transportApiVersion: V3
+          requestType: both
+          stage: 1
+          timeout: 0.100s
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
+            subFilter:
+              name: envoy.filters.http.router
+        portNumber: 8080
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.ratelimit
+        typedConfig:
+          '@type': type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+          domain: solo.io
+          rateLimitService:
+            grpcService:
+              envoyGrpc:
+                authority: outbound_.8083_._.rate-limiter.gloo-mesh-addons.svc.cluster.local
+                clusterName: outbound|8083||rate-limiter.gloo-mesh-addons.svc.cluster.local
+            transportApiVersion: V3
+          requestType: both
+          stage: 2
+          timeout: 0.100s
+  workloadSelector:
+    labels:
+      app: frontend
