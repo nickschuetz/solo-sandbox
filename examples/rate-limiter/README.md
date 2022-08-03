@@ -44,5 +44,13 @@ Now open another terminal and run the following to expose the rate-limiter metri
 kubectl port-forward -n gloo-mesh-addons deploy/rate-limiter 9091:9091 --context cluster1
 ```
 
-From here you can test using `test.sh` included in this repo to see the results
+From here you can test using `test.sh`
+
+You should see:
+
+bar1: gets 3 HTTP 200s
+
+bar2: gets 3 HTTP 200s
+
+global: gets the remaining 4 HTTP 200s
 
