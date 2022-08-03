@@ -1,0 +1,78 @@
+apiVersion: admin.gloo.solo.io/v2
+kind: RateLimitServerConfig
+metadata:
+  name: local-server-config
+  namespace: ops-team
+spec:
+  destinationServers:
+  - ref:
+      cluster: cluster1
+      name: rate-limiter
+      namespace: gloo-mesh-addons
+    port:
+      name: grpc
+  raw:
+    setDescriptors:
+      - simpleDescriptors:
+          - key: product
+          - key: org
+        rateLimit:
+          requestsPerUnit: 3
+          unit: MINUTE
+---
+#apiVersion: trafficcontrol.policy.gloo.solo.io/v2
+#kind: RateLimitPolicy
+#metadata:
+#  name: local-policy
+#  namespace: web-team
+#spec:
+#  applyToDestinations:
+#  - selector:
+#      labels:
+#        app: frontend
+#  config:
+#    serverSettings:
+#      name: rate-limit-server
+#      namespace: web-team
+#      cluster: mgmt
+#    ratelimitClientConfig:
+#      name: local-client-config
+#      namespace: web-team
+#      cluster: mgmt
+#    ratelimitServerConfig:
+#      name: local-server-config
+#      namespace: ops-team
+#      cluster: mgmt
+#    phase:
+#      postAuthz:
+#        priority: 1
+#---
+apiVersion: trafficcontrol.policy.gloo.solo.io/v2
+kind: RateLimitClientConfig
+metadata:
+  name: local-client-config
+  namespace: web-team
+spec:
+  raw:
+    rateLimits:
+    - setActions:
+      - requestHeaders:
+          descriptorKey: product
+          headerName: X-PRODUCT
+      - requestHeaders:
+          descriptorKey: org
+          headerName: X-ORG
+---
+apiVersion: admin.gloo.solo.io/v2
+kind: RateLimitServerSettings
+metadata:
+  name: rate-limit-server
+  namespace: web-team
+spec:
+  destinationServer:
+    ref:
+      cluster: cluster1
+      name: rate-limiter
+      namespace: gloo-mesh-addons
+    port:
+      name: grpc

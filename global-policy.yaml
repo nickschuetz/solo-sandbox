@@ -1,0 +1,75 @@
+# "Global" rate limiting
+apiVersion: admin.gloo.solo.io/v2
+kind: RateLimitServerConfig
+metadata:
+  name: global-server-config
+  namespace: ops-team
+spec:
+  destinationServers:
+  - ref:
+      cluster: cluster1
+      name: rate-limiter
+      namespace: gloo-mesh-addons
+    port:
+      name: grpc
+    weight: 1
+  raw:
+    descriptors:
+    - key: generic_key
+      rateLimit:
+        requestsPerUnit: 10
+        unit: MINUTE
+      value: counter
+---
+apiVersion: trafficcontrol.policy.gloo.solo.io/v2
+kind: RateLimitClientConfig
+metadata:
+  name: global-client-config
+  namespace: web-team
+spec:
+  raw:
+    rateLimits:
+    - actions:
+      - genericKey:
+          descriptorValue: counter
+---
+#apiVersion: trafficcontrol.policy.gloo.solo.io/v2
+#kind: RateLimitPolicy
+#metadata:
+#  name: global-policy
+#  namespace: web-team
+#spec:
+#  applyToDestinations:
+#  - selector:
+#      labels:
+#        app: frontend
+#  config:
+#    serverSettings:
+#      name: rate-limit-server
+#      namespace: web-team
+#      cluster: mgmt
+#    ratelimitClientConfig:
+#      name: global-client-config
+#      namespace: web-team
+#      cluster: mgmt
+#    ratelimitServerConfig:
+#      name: global-server-config
+#      namespace: ops-team
+#      cluster: mgmt
+#    phase:
+#      postAuthz:
+#        priority: 3
+#---
+apiVersion: admin.gloo.solo.io/v2
+kind: RateLimitServerSettings
+metadata:
+  name: rate-limit-server
+  namespace: web-team
+spec:
+  destinationServer:
+    ref:
+      cluster: cluster1
+      name: rate-limiter
+      namespace: gloo-mesh-addons
+    port:
+      name: grpc
