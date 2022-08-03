@@ -27,15 +27,15 @@ kubectl apply -f tracks/06-api-gateway/gloo-mesh-addons-servers.yaml --context $
 Next run the following commands:
 
 ```bash
-kubectl apply -f global-policy.yaml
+kubectl apply -f global-policy.yaml --context $MGMT
 ```
 
 ```bash
-kubectl apply -f local-policy.yaml
+kubectl apply -f local-policy.yaml --context $MGMT
 ```
 
 ```bash
-kubectl apply -f unified-envoyfilter.yaml
+kubectl apply -f unified-envoyfilter.yaml --context $MGMT
 ```
 
 Now open another terminal and run the following to expose the rate-limiter metrics:
