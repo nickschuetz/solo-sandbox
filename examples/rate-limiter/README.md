@@ -21,7 +21,6 @@ helm upgrade --install gloo-mesh-agent-addons gloo-mesh-agent/gloo-mesh-agent \
   --set ext-auth-service.enabled=true \
   --version $GLOO_MESH_VERSION
 
-kubectl apply -f tracks/06-api-gateway/gloo-mesh-addons-servers.yaml --context $MGMT
 ```
 
 Next run the following commands:
